@@ -1,0 +1,14 @@
+# Demo API + data preparation (CPU is fine)
+fastapi
+uvicorn
+pydantic>=2
+pandas
+matplotlib
+
+# Training / evaluation (CUDA GPU machine only)
+torch
+transformers
+datasets
+peft
+trl
+accelerate

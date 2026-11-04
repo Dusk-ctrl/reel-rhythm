@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Student research demonstration: verifiable movie and music recommendations with Gemma 4 experimental training.">
+  <title>Movie + Music | Gemma 4 Research Demo</title>
+  <style>
+    :root {font-family:Inter,system-ui,-apple-system,sans-serif; color:#f5f7ff; background:#101528}
+    * {box-sizing:border-box} body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 10%,#22305c 0%,#101528 50%)}
+    main {max-width:830px;margin:52px auto;padding:0 22px 60px} .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#b7c9ff}
+    h1{font-size:clamp(34px,5vw,56px);letter-spacing:-1.6px;margin:9px 0} p{line-height:1.65;color:#bcc5d9}
+    .panel{background:#1b2540;border:1px solid #3a4565;border-radius:20px;padding:25px;margin-top:26px;box-shadow:0 18px 46px #090c1966}
+    label{display:block;font-weight:650;margin-bottom:12px} textarea{width:100%;border:1px solid #647195;border-radius:12px;background:#121b32;color:#fff;padding:16px;font:inherit;resize:vertical;min-height:110px}
+    button{border:0;border-radius:12px;background:#84a5ff;color:#101529;font-weight:750;padding:13px 22px;margin-top:15px;cursor:pointer} button:hover{background:#b1c4ff} button:disabled{opacity:.55;cursor:wait}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.chips button{padding:9px 12px;margin:0;background:#2d3a5d;color:#f6f8ff;font-size:13px}
+    #result{white-space:pre-wrap;margin-top:18px;padding:18px;border-left:3px solid #8caaff;background:#131c35;border-radius:8px;min-height:60px}
+    .meta{font-size:13px;color:#bac5de} footer{font-size:13px;margin-top:30px;color:#a6b4d3}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">CSCI 4350 / 5350 · Option A · Research demonstration</div>
+  <h1>Movies & music, with checkable answers.</h1>
+  <p>A small demonstration website for Sandipta Khare and Graham Cutsinger's reinforcement-learning research. The live demo is <strong>rule-based</strong> until a GPU-hosted model is trained and connected. We do not present it as a trained Gemma result.</p>
+  <section class="panel">
+    <label for="message">What would you like to explore?</label>
+    <textarea id="message" maxlength="300" placeholder="For example: Recommend a highly rated science-fiction movie">Recommend a highly rated movie</textarea>
+    <div class="chips">
+      <button type="button" data-prompt="Recommend a highly rated science-fiction movie">Science fiction movie</button>
+      <button type="button" data-prompt="Recommend popular music">Popular music</button>
+      <button type="button" data-prompt="Recommend a good action movie">Action movie</button>
+    </div>
+    <button id="send" type="button">Get a dataset-backed example</button>
+    <div id="result" role="status" aria-live="polite">Enter a request to begin. A running Python backend is required.</div>
+  </section>
+  <footer>Research status: reward rules and test pipeline are available; SFT and GRPO results require separate GPU training. Dataset records are not packaged in this public website.</footer>
+</main>
+<script>
+  const box = document.getElementById('message');
+  const result = document.getElementById('result');
+  const send = document.getElementById('send');
+  const history = [];
+  for (const chip of document.querySelectorAll('[data-prompt]')) {
+    chip.addEventListener('click', () => { box.value = chip.dataset.prompt; });
+  }
+  send.addEventListener('click', async () => {
+    const message = box.value.trim();
+    if (message.length < 3) { result.textContent = 'Please describe a movie or music request.'; return; }
+    send.disabled = true;
+    result.textContent = 'Checking the prepared dataset...';
+    try {
+      const response = await fetch('/api/recommend', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, previous_titles: history })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Backend request failed');
+      if (data.recommendation) history.push(data.recommendation);
+      result.textContent = `${data.recommendation}\n\nRule: ${data.reason}\n\nEngine: ${data.engine}\n\nNote: ${data.note}`;
+    } catch (error) { result.textContent = `Demo unavailable: ${error.message}`; }
+    finally { send.disabled = false; }
+  });
+</script>
+</body>
+</html>
